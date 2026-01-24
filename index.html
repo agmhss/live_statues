@@ -61,7 +61,7 @@
         const gender = genderSelect.value;
         
         // REFINED PROMPT: Explicitly mentions the selected gender to override the "Woman" bias
-        const basePrompt = `A hyper-realistic, 8k resolution, wide shot, full-length head-to-feet photo of a living breathing ${gender}. The ${gender} is wearing traditional Tamil ancient dress and temple jewellery, exactly matching the stance of the original statue. Realistic skin texture, perspiring, cinematic lighting, loveshine in eyes, perfect anatomy, five fingers, two hands, two legs, ample headroom.`;
+        const basePrompt = `A hyper-realistic, 8k resolution, wide shot, full-length head-to-feet photo of a living breathing ${gender}. The ${gender} is wearing traditional Tamil ancient dress and temple jewellery, exactly matching the stance of the original statue. Realistic skin texture, perspiring, cinematic lighting, loveshine in eyes, perfect anatomy without any deformity of limps, only five fingers, only two hands, only two legs, ample headroom.`;
             
         const randomSeed = Math.floor(Math.random() * 99999);
         const encodedPrompt = encodeURIComponent(basePrompt);
