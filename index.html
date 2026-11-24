@@ -32,7 +32,7 @@
             border-radius: 20px;
             border: 1px solid var(--border);
             width: 100%;
-            max-width: 760px;
+            max-width: 800px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
         }
         h2 {
@@ -89,14 +89,13 @@
             background: #0b0b0f;
             transition: all 0.25s;
             margin-bottom: 14px;
-            position: relative;
         }
         .upload-zone:hover, .upload-zone.dragover {
             border-color: var(--gold);
             background: var(--gold-dim);
         }
         .upload-zone img {
-            max-height: 180px;
+            max-height: 210px;
             border-radius: 10px;
             margin-top: 10px;
             border: 1px solid var(--gold);
@@ -244,11 +243,11 @@
 
 <div class="card">
     <h2>Statue to Person AI</h2>
-    <p class="subtitle">Analyzes statue posture, mudras &amp; attire to render a lifelike historical portrait.</p>
+    <p class="subtitle">Locks the exact posture, hand mudras, dress &amp; ornaments of the original statue in living form.</p>
 
-    <!-- Optional Groq Vision Key for True Image-to-Prompt Analysis -->
+    <!-- Groq Vision Key for Exact Posture, Dress & Ornament Extraction -->
     <div class="api-bar">
-        <label for="groqKey">Groq API Key (Optional — Enables Exact Statue Pose &amp; Detail Extraction)</label>
+        <label for="groqKey">Groq API Key (Required to scan exact posture, dress &amp; ornaments from statue)</label>
         <div class="api-row">
             <input type="password" id="groqKey" placeholder="gsk_... (Saved locally in browser)">
             <button type="button" id="saveKeyBtn" class="small-btn">Save Key</button>
@@ -260,7 +259,7 @@
         <input type="file" id="photoInput" accept="image/*" hidden>
         <div id="uploadText">
             <strong style="color: var(--gold);">Click to upload statue photo</strong> or drag &amp; drop here<br>
-            <span style="font-size: 11px; color: var(--muted);">Supports JPG, PNG, WEBP (Clear full-body or portrait shots work best)</span>
+            <span style="font-size: 11px; color: var(--muted);">Supports JPG, PNG, WEBP</span>
         </div>
         <img id="previewImg" alt="Uploaded Statue Preview">
     </div>
@@ -272,47 +271,45 @@
                 <option value="auto">Auto-Detect from Statue</option>
                 <option value="South Indian man">Male Statue</option>
                 <option value="South Indian woman">Female Statue</option>
-                <option value="divine celestial figure">Divine / Mythological Figure</option>
+            </select>
+        </div>
+        <div>
+            <label for="poseLockSelect">Posture &amp; Camera Angle</label>
+            <select id="poseLockSelect">
+                <option value="strict">Strict Anatomical Posture &amp; Angle Lock (Exact Match)</option>
+                <option value="relaxed">Exact Pose with Natural Human Micro-Relaxation</option>
+            </select>
+        </div>
+        <div>
+            <label for="materialSelect">Ornament &amp; Fabric Material</label>
+            <select id="materialSelect">
+                <option value="real antique burnished gold jewelry with rubies and pearls, woven handloom silk and cotton garments">Real Gold &amp; Handloom Silk (Default)</option>
+                <option value="real aged bronze-gold temple ornaments and natural raw silk draping">Aged Temple Gold &amp; Raw Silk</option>
+                <option value="exact matching materials, colors, and textures visible on the original statue">Strict Match to Statue Colors</option>
             </select>
         </div>
         <div>
             <label for="aspectSelect">Output Framing &amp; Resolution</label>
             <select id="aspectSelect">
+                <option value="auto">Auto-Match Statue Aspect Ratio (Recommended)</option>
                 <option value="768x1152">Full-Body Portrait (2:3 HD)</option>
                 <option value="768x1344">Tall Full-Length (9:16 HD)</option>
-                <option value="1024x1024">Square Medium Shot (1:1 HD)</option>
-            </select>
-        </div>
-        <div>
-            <label for="eraSelect">Historical Attire &amp; Setting</label>
-            <select id="eraSelect">
-                <option value="Chola dynasty traditional silk veshti, intricate antique temple gold jewelry, sacred ash tilak, ancient granite temple courtyard">Chola Temple Heritage</option>
-                <option value="Pallava royal silk attire, traditional pearl and gold ornaments, carved stone mandapam background">Pallava Royal Court</option>
-                <option value="classical Bharatanatyam temple dancer silk costume, temple jewelry, warm oil lamp glow">Classical Temple Dancer</option>
-                <option value="natural realistic period clothing matching the statue, soft natural daylight">Natural / Auto-Match Era</option>
-            </select>
-        </div>
-        <div>
-            <label for="modelSelect">Rendering Engine</label>
-            <select id="modelSelect">
-                <option value="flux">Flux (Highest Photorealism)</option>
-                <option value="flux-realism">Flux Realism (Natural Skin &amp; Lighting)</option>
-                <option value="turbo">Turbo (Fast Preview)</option>
+                <option value="1024x1024">Square Shot (1:1 HD)</option>
             </select>
         </div>
     </div>
 
-    <button id="transformBtn" class="primary-btn">ANALYZE &amp; TRANSFORM STATUE</button>
+    <button id="transformBtn" class="primary-btn">EXTRACT POSTURE, DRESS &amp; TRANSFORM</button>
 
     <div class="status-box">
         <div class="spinner" id="spinner"></div>
         <span id="status">Upload a statue image to begin...</span>
     </div>
 
-    <!-- Editable AI Prompt for Teacher/User Refinement -->
+    <!-- Editable Extracted Description -->
     <div class="prompt-editor" id="promptEditorBox">
-        <label for="editablePrompt">Generated Visual Prompt (Editable — Refine &amp; Regenerate)</label>
-        <textarea id="editablePrompt" rows="3"></textarea>
+        <label for="editablePrompt">Extracted Posture, Dress &amp; Ornaments (Editable — Refine if needed)</label>
+        <textarea id="editablePrompt" rows="4"></textarea>
     </div>
 
     <!-- Side-by-Side Result Area -->
@@ -358,6 +355,7 @@
     const outputImg = document.getElementById('outputImg');
 
     let uploadedDataUrl = null;
+    let detectedDimensions = { width: 768, height: 1152 };
 
     // Load saved Groq API key
     const savedKey = localStorage.getItem('gtk_groq_api_key');
@@ -393,11 +391,22 @@
         }
         const reader = new FileReader();
         reader.onload = (ev) => {
-            // Resize image client-side to max 768px for fast Vision API analysis
             const tempImg = new Image();
             tempImg.onload = () => {
+                // Compute matching HD render dimensions (multiples of 64)
+                const ratio = tempImg.width / tempImg.height;
+                if (ratio < 0.65) {
+                    detectedDimensions = { width: 768, height: 1344 }; // Tall 9:16
+                } else if (ratio < 0.88) {
+                    detectedDimensions = { width: 768, height: 1152 }; // Portrait 2:3
+                } else if (ratio <= 1.15) {
+                    detectedDimensions = { width: 1024, height: 1024 }; // Square 1:1
+                } else {
+                    detectedDimensions = { width: 1152, height: 768 }; // Landscape 3:2
+                }
+
                 const canvas = document.createElement('canvas');
-                const maxDim = 768;
+                const maxDim = 896;
                 let w = tempImg.width, h = tempImg.height;
                 if (w > maxDim || h > maxDim) {
                     if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
@@ -406,12 +415,12 @@
                 canvas.width = w;
                 canvas.height = h;
                 canvas.getContext('2d').drawImage(tempImg, 0, 0, w, h);
-                uploadedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                uploadedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
                 previewImg.src = uploadedDataUrl;
                 previewImg.style.display = 'inline-block';
-                uploadText.innerHTML = `<span style="color:var(--gold);">Image ready!</span> Click to change photo.`;
-                setStatus("Statue loaded. Click Analyze & Transform.", false);
+                uploadText.innerHTML = `<span style="color:var(--gold);">Statue image loaded!</span> (${detectedDimensions.width}x${detectedDimensions.height} matched) — Click to change.`;
+                setStatus("Ready to extract posture, dress & ornaments.", false);
             };
             tempImg.src = ev.target.result;
         };
@@ -423,8 +432,8 @@
         spinner.style.display = loading ? 'inline-block' : 'none';
     }
 
-    // Step 1: Analyze Statue with Groq Vision (if API key provided)
-    async function analyzeStatueWithVision(dataUrl, selectedGender, eraStyle) {
+    // Step 1: Strictly Inventory Posture, Mudras, Dress & Ornaments via Groq Vision
+    async function extractExactStatueDetails(dataUrl, selectedGender, materialStyle, poseLock) {
         const apiKey = groqKeyInput.value.trim();
         if (!apiKey) return null;
 
@@ -433,13 +442,20 @@
             "llama-3.2-11b-vision-preview"
         ];
 
-        const systemInstruction = `Analyze this statue image carefully and write a single, vivid, photorealistic image-generation prompt (max 90 words) describing this exact statue brought to life as a real living human being. 
-Specify:
-1. Exact gender/age (${selectedGender === 'auto' ? 'detect accurately from statue' : selectedGender}).
-2. Exact body posture, head tilt, hand gestures/mudras, and standing/sitting stance.
-3. Facial expression, crown/hairstyle, jewelry, and draping of garments.
-4. Incorporate this setting/attire style: ${eraStyle}.
-Output ONLY the prompt text, no intro or quotes.`;
+        const poseGuidance = poseLock === 'strict'
+            ? "Describe the EXACT geometric body posture, spine flexion (e.g., tribhanga S-curve or straight samabhanga), head tilt angle, gaze direction, exact left arm and right arm positions, elbow bends, exact finger mudras/hand gestures, hip weight shift, and exact leg/foot stance or seated cross-legged position, plus the exact camera framing (full-body head-to-toe, three-quarter, or bust) and angle."
+            : "Preserve the exact stance, arm gestures, hand mudras, and head orientation of the statue while letting the posture look naturally balanced for a living human.";
+
+        const systemInstruction = `Inspect this statue image with extreme precision and write a 115-word photorealistic image-generation prompt transforming this exact statue into a living, breathing human being. You MUST preserve the EXACT posture, EXACT dress, and EXACT ornaments of the statue without inventing or adding extra clothes.
+
+Include in one cohesive paragraph:
+1. Framing & Subject: Exact framing (full-body head-to-feet if feet are visible, or matching crop) of ${selectedGender === 'auto' ? 'the exact gender, age, and build shown in the statue' : selectedGender}.
+2. Exact Posture & Mudras: ${poseGuidance}
+3. Exact Headgear & Ornaments: Exact crown (karanda/kirita makuta) or hair bun, ear ornaments (kundala), every necklace (haram, choker), armlets (keyura), bangles, sacred thread (yajnopavita), waist belt (udarabandha/mekhala), and anklets.
+4. Exact Dress & Draping: Exact cut, pleats, belt folds, and coverage of upper and lower garments (keep torso bare with ornaments if the statue's torso is bare), rendered in ${materialStyle}.
+5. Setting: Matching subtle temple stone or historical background with natural daylight.
+
+Output ONLY the prompt text. No labels, no bullet points, no markdown.`;
 
         for (const model of visionModels) {
             try {
@@ -458,8 +474,8 @@ Output ONLY the prompt text, no intro or quotes.`;
                                 { type: "image_url", image_url: { url: dataUrl } }
                             ]
                         }],
-                        temperature: 0.4,
-                        max_tokens: 180
+                        temperature: 0.15, // Very low temperature for strict anatomical & outfit fidelity
+                        max_tokens: 250
                     })
                 });
                 if (!res.ok) continue;
@@ -475,17 +491,20 @@ Output ONLY the prompt text, no intro or quotes.`;
 
     // Step 2: Render Image via Pollinations Flux
     function renderImageFromPrompt(promptText) {
-        const [width, height] = document.getElementById('aspectSelect').value.split('x');
-        const model = document.getElementById('modelSelect').value;
+        const aspectChoice = document.getElementById('aspectSelect').value;
+        const [width, height] = aspectChoice === 'auto'
+            ? [detectedDimensions.width, detectedDimensions.height]
+            : aspectChoice.split('x');
+
         const seed = Math.floor(Math.random() * 999999);
 
-        const qualityBoost = "RAW photo, photorealistic 8k portrait, natural human skin pores and subtle sheen, expressive lifelike eyes, cinematic golden hour lighting, shallow depth of field, shot on 85mm lens, anatomically accurate hands and five fingers, no stone texture";
-        const fullPrompt = `${promptText}, ${qualityBoost}`;
+        const realismTags = "RAW candid photograph, real living human flesh and natural skin pores, expressive lifelike eyes, faithful reproduction of the exact body posture, hand gestures, ornaments, and garment draping, natural daylight, 8k resolution, sharp focus, anatomically accurate hands with five fingers, completely transformed from stone/metal into real human skin and real fabric";
+        const fullPrompt = `${promptText}, ${realismTags}`;
         const encoded = encodeURIComponent(fullPrompt);
 
-        const url = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true&enhance=false`;
+        const url = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&model=flux&nologo=true&enhance=false`;
 
-        setStatus("Rendering high-resolution living portrait...", true);
+        setStatus("Rendering living portrait matching posture, dress & ornaments...", true);
         transformBtn.disabled = true;
         regenBtn.disabled = true;
 
@@ -508,30 +527,34 @@ Output ONLY the prompt text, no intro or quotes.`;
         loader.src = url;
     }
 
-   // Main Transform Click
+    // Main Transform Click
     transformBtn.onclick = async () => {
         if (!uploadedDataUrl) {
             return setStatus("Please upload a statue photo first!", false);
         }
 
-        transformBtn.disabled = true;
         const gender = document.getElementById('genderSelect').value;
-        const era = document.getElementById('eraSelect').value;
+        const poseLock = document.getElementById('poseLockSelect').value;
+        const material = document.getElementById('materialSelect').value;
 
+        if (!groqKeyInput.value.trim()) {
+            setStatus("Tip: Add your Groq API key above so the AI can copy the statue's exact posture, dress & ornaments.", false);
+        }
+
+        transformBtn.disabled = true;
         let finalPrompt = "";
 
         if (groqKeyInput.value.trim()) {
-            setStatus("Analyzing statue posture, mudras & ornaments...", true);
-            const visionPrompt = await analyzeStatueWithVision(uploadedDataUrl, gender, era);
+            setStatus("Scanning exact posture, hand mudras, dress & jewelry...", true);
+            const visionPrompt = await extractExactStatueDetails(uploadedDataUrl, gender, material, poseLock);
             if (visionPrompt) {
                 finalPrompt = visionPrompt;
             }
         }
 
-        // Fallback if no API key or Vision unavailable
         if (!finalPrompt) {
             const subject = gender === 'auto' ? 'South Indian historical figure' : gender;
-            finalPrompt = `Full-length head-to-feet living breathing portrait of a ${subject} wearing ${era}, graceful classical temple posture and hand mudra, warm lifelike expression`;
+            finalPrompt = `Full-length living breathing portrait of a ${subject} holding the exact stance, head tilt, and hand mudras of the statue, wearing the exact traditional ornaments, crown, waist belt, and pleated garment draping, rendered in ${material}`;
         }
 
         editablePrompt.value = finalPrompt;
@@ -539,13 +562,13 @@ Output ONLY the prompt text, no intro or quotes.`;
         renderImageFromPrompt(finalPrompt);
     };
 
-    // Re-roll using the user-edited prompt
+    // Re-roll using the edited prompt
     regenBtn.onclick = () => {
         const customPrompt = editablePrompt.value.trim();
         if (customPrompt) renderImageFromPrompt(customPrompt);
     };
 
-    // Reliable Canvas-based Download (Bypasses Cross-Origin Download Block)
+    // CORS-safe PNG Download
     dlBtn.onclick = () => {
         try {
             const canvas = document.createElement('canvas');
@@ -559,7 +582,6 @@ Output ONLY the prompt text, no intro or quotes.`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         } catch (e) {
-            // Fallback open in new tab if browser restricts tainted canvas
             window.open(outputImg.src, '_blank');
         }
     };
