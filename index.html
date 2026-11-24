@@ -5,97 +5,573 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statue to Person AI Transformer</title>
     <style>
-        body { background: #050505; color: #FFD700; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-        .card { background: #111; padding: 25px; border-radius: 20px; border: 1px solid #333; max-width: 400px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        h2 { margin-top: 0; letter-spacing: 1px; font-size: 1.4rem; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; }
-        button { width: 100%; padding: 18px; border-radius: 10px; border: none; background: #FFD700; color: #000; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #fff; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        #status { margin: 20px 0; font-size: 14px; color: #aaa; min-height: 20px; }
-        .result-box { margin-top: 25px; display: none; }
-        img { width: 100%; border-radius: 12px; border: 2px solid #FFD700; box-shadow: 0 5px 15px rgba(255,215,0,0.3); }
-        .download-btn { background: #222; color: #FFD700; border: 1px solid #FFD700; margin-top: 15px; padding: 10px; font-size: 12px; cursor: pointer; }
+        :root {
+            --bg: #070709;
+            --card: #121216;
+            --gold: #FFD700;
+            --gold-dim: rgba(255, 215, 0, 0.15);
+            --border: #2a2a32;
+            --text: #f0f0f5;
+            --muted: #8e8e9e;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: var(--card);
+            padding: 28px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 760px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+        }
+        h2 {
+            margin: 0 0 6px;
+            color: var(--gold);
+            letter-spacing: 0.8px;
+            font-size: 1.55rem;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            margin: 0 0 20px;
+        }
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        @media (max-width: 600px) {
+            .grid-inputs { grid-template-columns: 1fr; }
+        }
+        label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--gold);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #09090c;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--gold);
+        }
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            background: #0b0b0f;
+            transition: all 0.25s;
+            margin-bottom: 14px;
+            position: relative;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--gold);
+            background: var(--gold-dim);
+        }
+        .upload-zone img {
+            max-height: 180px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid var(--gold);
+            display: none;
+        }
+        .api-bar {
+            background: #0b0b0f;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+        .api-row {
+            display: flex;
+            gap: 8px;
+        }
+        .api-row input { flex: 1; }
+        .small-btn {
+            background: #1d1d24;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 0 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .small-btn:hover { background: var(--gold); color: #000; }
+        .primary-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #FFD700, #e6b800);
+            color: #000;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.2s;
+            margin-top: 6px;
+        }
+        .primary-btn:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.95; }
+        .primary-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+        
+        .status-box {
+            margin: 16px 0 0;
+            font-size: 13px;
+            color: var(--gold);
+            text-align: center;
+            min-height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--gold-dim);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .prompt-editor {
+            margin-top: 14px;
+            display: none;
+        }
+        .result-box {
+            margin-top: 24px;
+            display: none;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        @media (max-width: 600px) {
+            .comparison-grid { grid-template-columns: 1fr; }
+        }
+        .img-frame {
+            background: #09090c;
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .img-frame.highlight {
+            border-color: var(--gold);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.18);
+        }
+        .img-frame span {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .img-frame.highlight span { color: var(--gold); }
+        .img-frame img {
+            width: 100%;
+            border-radius: 10px;
+            display: block;
+        }
+        .action-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        @media (max-width: 600px) {
+            .action-row { grid-template-columns: 1fr; }
+        }
+        .action-btn {
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--gold);
+            background: #18181f;
+            color: var(--gold);
+            transition: 0.2s;
+        }
+        .action-btn:hover { background: var(--gold); color: #000; }
+        .action-btn.secondary { border-color: #444; color: #aaa; }
+        .action-btn.secondary:hover { background: #333; color: #fff; }
+        footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>Statue to Person AI</h2>
-    <p style="font-size: 12px; color: #777;">Upload a statue to see it come to life.</p>
-    
-    <input type="file" id="photoInput" accept="image/*">
-    
-    <select id="genderSelect">
-        <option value="person">Auto Detect (Neutral)</option>
-        <option value="man">Male Statue</option>
-        <option value="woman">Female Statue</option>
-    </select>
+    <p class="subtitle">Analyzes statue posture, mudras &amp; attire to render a lifelike historical portrait.</p>
 
-    <button id="transformBtn">TRANSFORM NOW</button>
-    
-    <div id="status">Ready to begin...</div>
+    <!-- Optional Groq Vision Key for True Image-to-Prompt Analysis -->
+    <div class="api-bar">
+        <label for="groqKey">Groq API Key (Optional — Enables Exact Statue Pose &amp; Detail Extraction)</label>
+        <div class="api-row">
+            <input type="password" id="groqKey" placeholder="gsk_... (Saved locally in browser)">
+            <button type="button" id="saveKeyBtn" class="small-btn">Save Key</button>
+        </div>
+    </div>
 
+    <!-- Drag & Drop Upload with Instant Preview -->
+    <div class="upload-zone" id="dropZone">
+        <input type="file" id="photoInput" accept="image/*" hidden>
+        <div id="uploadText">
+            <strong style="color: var(--gold);">Click to upload statue photo</strong> or drag &amp; drop here<br>
+            <span style="font-size: 11px; color: var(--muted);">Supports JPG, PNG, WEBP (Clear full-body or portrait shots work best)</span>
+        </div>
+        <img id="previewImg" alt="Uploaded Statue Preview">
+    </div>
+
+    <div class="grid-inputs">
+        <div>
+            <label for="genderSelect">Subject Identity</label>
+            <select id="genderSelect">
+                <option value="auto">Auto-Detect from Statue</option>
+                <option value="South Indian man">Male Statue</option>
+                <option value="South Indian woman">Female Statue</option>
+                <option value="divine celestial figure">Divine / Mythological Figure</option>
+            </select>
+        </div>
+        <div>
+            <label for="aspectSelect">Output Framing &amp; Resolution</label>
+            <select id="aspectSelect">
+                <option value="768x1152">Full-Body Portrait (2:3 HD)</option>
+                <option value="768x1344">Tall Full-Length (9:16 HD)</option>
+                <option value="1024x1024">Square Medium Shot (1:1 HD)</option>
+            </select>
+        </div>
+        <div>
+            <label for="eraSelect">Historical Attire &amp; Setting</label>
+            <select id="eraSelect">
+                <option value="Chola dynasty traditional silk veshti, intricate antique temple gold jewelry, sacred ash tilak, ancient granite temple courtyard">Chola Temple Heritage</option>
+                <option value="Pallava royal silk attire, traditional pearl and gold ornaments, carved stone mandapam background">Pallava Royal Court</option>
+                <option value="classical Bharatanatyam temple dancer silk costume, temple jewelry, warm oil lamp glow">Classical Temple Dancer</option>
+                <option value="natural realistic period clothing matching the statue, soft natural daylight">Natural / Auto-Match Era</option>
+            </select>
+        </div>
+        <div>
+            <label for="modelSelect">Rendering Engine</label>
+            <select id="modelSelect">
+                <option value="flux">Flux (Highest Photorealism)</option>
+                <option value="flux-realism">Flux Realism (Natural Skin &amp; Lighting)</option>
+                <option value="turbo">Turbo (Fast Preview)</option>
+            </select>
+        </div>
+    </div>
+
+    <button id="transformBtn" class="primary-btn">ANALYZE &amp; TRANSFORM STATUE</button>
+
+    <div class="status-box">
+        <div class="spinner" id="spinner"></div>
+        <span id="status">Upload a statue image to begin...</span>
+    </div>
+
+    <!-- Editable AI Prompt for Teacher/User Refinement -->
+    <div class="prompt-editor" id="promptEditorBox">
+        <label for="editablePrompt">Generated Visual Prompt (Editable — Refine &amp; Regenerate)</label>
+        <textarea id="editablePrompt" rows="3"></textarea>
+    </div>
+
+    <!-- Side-by-Side Result Area -->
     <div id="resultArea" class="result-box">
-        <p style="font-size: 11px; color: #FFD700;">REIMAGINED PORTRAIT</p>
-        <img id="outputImg" src="">
-        <button id="dlBtn" class="download-btn">Save to Gallery</button>
-        <button onclick="location.reload()" class="download-btn" style="border-color: #444; color: #888;">Try Another</button>
+        <div class="comparison-grid">
+            <div class="img-frame">
+                <span>ORIGINAL STATUE</span>
+                <img id="compareOriginal" alt="Original Statue">
+            </div>
+            <div class="img-frame highlight">
+                <span>LIVING PORTRAIT RENDER</span>
+                <img id="outputImg" crossorigin="anonymous" alt="Reimagined Portrait">
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button id="dlBtn" class="action-btn">Download High-Res PNG</button>
+            <button id="regenBtn" class="action-btn secondary">Re-Roll Seed</button>
+            <button id="resetBtn" class="action-btn secondary">New Statue</button>
+        </div>
     </div>
 </div>
 
+<footer>Designed by Thiraviya Kumar G</footer>
+
 <script>
-    const btn = document.getElementById('transformBtn');
-    const status = document.getElementById('status');
-    const resultArea = document.getElementById('resultArea');
-    const outputImg = document.getElementById('outputImg');
     const photoInput = document.getElementById('photoInput');
-    const genderSelect = document.getElementById('genderSelect');
+    const dropZone = document.getElementById('dropZone');
+    const previewImg = document.getElementById('previewImg');
+    const uploadText = document.getElementById('uploadText');
+    const groqKeyInput = document.getElementById('groqKey');
+    const saveKeyBtn = document.getElementById('saveKeyBtn');
+    const transformBtn = document.getElementById('transformBtn');
+    const regenBtn = document.getElementById('regenBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const dlBtn = document.getElementById('dlBtn');
+    const statusText = document.getElementById('status');
+    const spinner = document.getElementById('spinner');
+    const promptEditorBox = document.getElementById('promptEditorBox');
+    const editablePrompt = document.getElementById('editablePrompt');
+    const resultArea = document.getElementById('resultArea');
+    const compareOriginal = document.getElementById('compareOriginal');
+    const outputImg = document.getElementById('outputImg');
 
-    btn.onclick = async () => {
-        if (!photoInput.files[0]) return alert("Please select a photo first!");
+    let uploadedDataUrl = null;
 
-        btn.disabled = true;
-        status.innerText = "Analyzing features and generating...";
+    // Load saved Groq API key
+    const savedKey = localStorage.getItem('gtk_groq_api_key');
+    if (savedKey) groqKeyInput.value = savedKey;
 
-        const gender = genderSelect.value;
-        
-        // REFINED PROMPT: Explicitly mentions the selected gender to override the "Woman" bias
-        const basePrompt = `A hyper-realistic, 8k resolution, wide shot, full-length head-to-feet photo of a living breathing ${gender}. The ${gender} is wearing traditional Tamil ancient dress and temple jewellery, exactly matching the stance of the original statue. Realistic skin texture, perspiring, cinematic lighting, loveshine in eyes, perfect anatomy without any deformity of limps, only five fingers, only two hands, only two legs, ample headroom.`;
-            
-        const randomSeed = Math.floor(Math.random() * 99999);
-        const encodedPrompt = encodeURIComponent(basePrompt);
-        
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=1024&seed=${randomSeed}&model=flux&nologo=true`;
-
-        try {
-            const img = new Image();
-            img.src = imageUrl;
-            img.onload = () => {
-                outputImg.src = imageUrl;
-                resultArea.style.display = "block";
-                status.innerText = "Transformation Complete!";
-                btn.disabled = false;
-                outputImg.scrollIntoView({ behavior: 'smooth' });
-            };
-            img.onerror = () => {
-                status.innerText = "Error generating image. Try again.";
-                btn.disabled = false;
-            };
-
-        } catch (e) {
-            status.innerText = "Connection error.";
-            btn.disabled = false;
+    saveKeyBtn.onclick = () => {
+        const key = groqKeyInput.value.trim();
+        if (key) {
+            localStorage.setItem('gtk_groq_api_key', key);
+            setStatus("API key saved in browser.", false);
+        } else {
+            localStorage.removeItem('gtk_groq_api_key');
+            setStatus("API key cleared.", false);
         }
     };
 
-    document.getElementById('dlBtn').onclick = () => {
-        const a = document.createElement('a');
-        a.href = outputImg.src;
-        a.download = "Ancient_Statue_AI.jpg";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    // Drag & Drop + File Selection
+    dropZone.onclick = () => photoInput.click();
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    };
+    photoInput.onchange = (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+    };
+
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            return setStatus("Please upload a valid image file.", false);
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            // Resize image client-side to max 768px for fast Vision API analysis
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxDim = 768;
+                let w = tempImg.width, h = tempImg.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(tempImg, 0, 0, w, h);
+                uploadedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                previewImg.src = uploadedDataUrl;
+                previewImg.style.display = 'inline-block';
+                uploadText.innerHTML = `<span style="color:var(--gold);">Image ready!</span> Click to change photo.`;
+                setStatus("Statue loaded. Click Analyze & Transform.", false);
+            };
+            tempImg.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function setStatus(msg, loading = false) {
+        statusText.innerText = msg;
+        spinner.style.display = loading ? 'inline-block' : 'none';
+    }
+
+    // Step 1: Analyze Statue with Groq Vision (if API key provided)
+    async function analyzeStatueWithVision(dataUrl, selectedGender, eraStyle) {
+        const apiKey = groqKeyInput.value.trim();
+        if (!apiKey) return null;
+
+        const visionModels = [
+            "llama-3.2-90b-vision-preview",
+            "llama-3.2-11b-vision-preview"
+        ];
+
+        const systemInstruction = `Analyze this statue image carefully and write a single, vivid, photorealistic image-generation prompt (max 90 words) describing this exact statue brought to life as a real living human being. 
+Specify:
+1. Exact gender/age (${selectedGender === 'auto' ? 'detect accurately from statue' : selectedGender}).
+2. Exact body posture, head tilt, hand gestures/mudras, and standing/sitting stance.
+3. Facial expression, crown/hairstyle, jewelry, and draping of garments.
+4. Incorporate this setting/attire style: ${eraStyle}.
+Output ONLY the prompt text, no intro or quotes.`;
+
+        for (const model of visionModels) {
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{
+                            role: "user",
+                            content: [
+                                { type: "text", text: systemInstruction },
+                                { type: "image_url", image_url: { url: dataUrl } }
+                            ]
+                        }],
+                        temperature: 0.4,
+                        max_tokens: 180
+                    })
+                });
+                if (!res.ok) continue;
+                const data = await res.json();
+                const text = data.choices?.[0]?.message?.content?.trim();
+                if (text) return text;
+            } catch (err) {
+                console.warn(`Vision fallback from ${model}:`, err);
+            }
+        }
+        return null;
+    }
+
+    // Step 2: Render Image via Pollinations Flux
+    function renderImageFromPrompt(promptText) {
+        const [width, height] = document.getElementById('aspectSelect').value.split('x');
+        const model = document.getElementById('modelSelect').value;
+        const seed = Math.floor(Math.random() * 999999);
+
+        const qualityBoost = "RAW photo, photorealistic 8k portrait, natural human skin pores and subtle sheen, expressive lifelike eyes, cinematic golden hour lighting, shallow depth of field, shot on 85mm lens, anatomically accurate hands and five fingers, no stone texture";
+        const fullPrompt = `${promptText}, ${qualityBoost}`;
+        const encoded = encodeURIComponent(fullPrompt);
+
+        const url = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true&enhance=false`;
+
+        setStatus("Rendering high-resolution living portrait...", true);
+        transformBtn.disabled = true;
+        regenBtn.disabled = true;
+
+        const loader = new Image();
+        loader.crossOrigin = "anonymous";
+        loader.onload = () => {
+            compareOriginal.src = uploadedDataUrl;
+            outputImg.src = url;
+            resultArea.style.display = "block";
+            setStatus("Transformation Complete!", false);
+            transformBtn.disabled = false;
+            regenBtn.disabled = false;
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+        loader.onerror = () => {
+            setStatus("Render server busy. Click 'Re-Roll Seed' to retry.", false);
+            transformBtn.disabled = false;
+            regenBtn.disabled = false;
+        };
+        loader.src = url;
+    }
+
+   // Main Transform Click
+    transformBtn.onclick = async () => {
+        if (!uploadedDataUrl) {
+            return setStatus("Please upload a statue photo first!", false);
+        }
+
+        transformBtn.disabled = true;
+        const gender = document.getElementById('genderSelect').value;
+        const era = document.getElementById('eraSelect').value;
+
+        let finalPrompt = "";
+
+        if (groqKeyInput.value.trim()) {
+            setStatus("Analyzing statue posture, mudras & ornaments...", true);
+            const visionPrompt = await analyzeStatueWithVision(uploadedDataUrl, gender, era);
+            if (visionPrompt) {
+                finalPrompt = visionPrompt;
+            }
+        }
+
+        // Fallback if no API key or Vision unavailable
+        if (!finalPrompt) {
+            const subject = gender === 'auto' ? 'South Indian historical figure' : gender;
+            finalPrompt = `Full-length head-to-feet living breathing portrait of a ${subject} wearing ${era}, graceful classical temple posture and hand mudra, warm lifelike expression`;
+        }
+
+        editablePrompt.value = finalPrompt;
+        promptEditorBox.style.display = "block";
+        renderImageFromPrompt(finalPrompt);
+    };
+
+    // Re-roll using the user-edited prompt
+    regenBtn.onclick = () => {
+        const customPrompt = editablePrompt.value.trim();
+        if (customPrompt) renderImageFromPrompt(customPrompt);
+    };
+
+    // Reliable Canvas-based Download (Bypasses Cross-Origin Download Block)
+    dlBtn.onclick = () => {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = outputImg.naturalWidth;
+            canvas.height = outputImg.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(outputImg, 0, 0);
+
+            const link = document.createElement('a');
+            link.download = `Statue_Alive_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (e) {
+            // Fallback open in new tab if browser restricts tainted canvas
+            window.open(outputImg.src, '_blank');
+        }
+    };
+
+    resetBtn.onclick = () => {
+        uploadedDataUrl = null;
+        photoInput.value = "";
+        previewImg.style.display = "none";
+        resultArea.style.display = "none";
+        promptEditorBox.style.display = "none";
+        uploadText.innerHTML = `<strong style="color: var(--gold);">Click to upload statue photo</strong> or drag &amp; drop here<br><span style="font-size: 11px; color: var(--muted);">Supports JPG, PNG, WEBP</span>`;
+        setStatus("Ready for a new statue.", false);
     };
 </script>
 
